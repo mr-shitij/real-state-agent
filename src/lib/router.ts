@@ -13,7 +13,7 @@
 
 import { analyseIssue } from './agents/issueDetection';
 import { answerFAQ }   from './agents/tenancyFAQ';
-import { GenerateContentResponse } from '@google/generative-ai'; // Import type
+import { GenerateContentResponse, Content, Part } from '@google/generative-ai'; // Import necessary types from the library
 
 // ------------- Utility: very light-weight text classification
 function decideByRegex(text: string): 'tenancy' | 'unknown' {
@@ -26,14 +26,26 @@ function decideByRegex(text: string): 'tenancy' | 'unknown' {
 // Helper to create a stream for the fallback message
 async function* fallbackStream(): AsyncGenerator<GenerateContentResponse> {
   const fallbackText = `Could you provide more details?\n• For property issues, \nplease upload a photo.\n• For tenancy questions, mention rent, lease, \nor landlord context so I can help.`;
-  // Yield a single response chunk containing the fallback text
+  
+  // Construct a Part object
+  const fallbackPart: Part = { text: fallbackText };
+  // Construct a Content object (mimicking a candidate's content)
+  const fallbackContent: Content = { role: 'model', parts: [fallbackPart] }; 
+
+  // Yield a single GenerateContentResponse chunk mimicking the expected structure
   yield { 
-    response: Promise.resolve({ 
-      text: () => fallbackText, 
-      // Mock other properties if needed, though text() is the main one used later
-      promptFeedback: undefined, 
-      candidates: undefined 
-    }) 
+    // Mimic the candidates array structure 
+    candidates: [
+      {
+        content: fallbackContent,
+        index: 0,
+        // Add other required candidate properties if necessary (often optional)
+        finishReason: 'STOP', 
+        safetyRatings: [] 
+      }
+    ],
+    // Mimic promptFeedback (optional, can be undefined)
+    promptFeedback: undefined
   } as GenerateContentResponse;
   // No more chunks
 }
