@@ -1,6 +1,6 @@
 // lib/agents/tenancyFAQ.ts
 import { textModel } from '../gemini';
-import { Content, GenerateContentResponse, Part } from '@google/generative-ai';
+import { Content, GenerateContentResponse } from '@google/generative-ai';
 
 // --- Refined System Instruction --- 
 const systemInstruction: Content = {

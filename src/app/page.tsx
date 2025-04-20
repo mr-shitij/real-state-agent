@@ -227,7 +227,7 @@ export default function Home() {
     },
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // --- Markdown Components --- 
   const markdownComponents: Options['components'] = {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
     code({ node: _node, inline, className, children, ...props }: any) {
