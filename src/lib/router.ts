@@ -15,14 +15,6 @@ import { analyseIssue } from './agents/issueDetection';
 import { answerFAQ }   from './agents/tenancyFAQ';
 import { GenerateContentResponse, Content, Part } from '@google/generative-ai'; // Import necessary types from the library
 
-// ------------- Utility: very light-weight text classification
-function decideByRegex(text: string): 'tenancy' | 'unknown' {
-  const tenancyPattern =
-    /\b(rent|lease|deposit|tenant|landlord|evict|notice|agreement|vacate|contract|property\s+manager)\b/i;
-
-  return tenancyPattern.test(text) ? 'tenancy' : 'unknown';
-}
-
 // Helper to create a stream for the fallback message
 async function* fallbackStream(): AsyncGenerator<GenerateContentResponse> {
   const fallbackText = `Could you provide more details?\n• For property issues, \nplease upload a photo.\n• For tenancy questions, mention rent, lease, \nor landlord context so I can help.`;
@@ -68,15 +60,15 @@ export async function route({
     return analyseIssue(base64Image, text, history);
   }
 
-  // 2. No image, have text → try FAQ agent stream
+  // 2. No image, but text is present → Route to FAQ/Text Agent
   if (text) {
-    const classification = decideByRegex(text);
-
-    if (classification === 'tenancy') {
-      return answerFAQ(text, history);
-    }
+    // Always route text-only messages to answerFAQ
+    return answerFAQ(text, history); 
   }
 
-  // 3. Fallback: Return the fallback stream
-  return fallbackStream();
+  // 3. No image and no text (should ideally not happen due to API checks) 
+  //    OR if text-only routing needs a specific fallback 
+  //    -> Return the fallback stream asking for details.
+  console.warn("Router fallback: No image and no text provided, or unhandled case.");
+  return fallbackStream(); 
 }

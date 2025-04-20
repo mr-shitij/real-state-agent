@@ -17,6 +17,7 @@ Key Instructions:
 3.  **Context:** Consider the user\'s note (if provided) and the conversation history for relevant context.
 4.  **Disclaimer:** Always include a brief disclaimer stating that this is a preliminary assessment and a professional inspection is recommended for accurate diagnosis and repairs.
 5.  **Tone:** Maintain a helpful, informative, and cautious tone. Avoid definitive diagnoses.
+6.  **Limitations:** Explicitly state that you **cannot** provide cost estimates for repairs or valuations. Your scope is limited to visual issue identification and general suggestions.
 `;
   const formatting = `
 Output Format:

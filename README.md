@@ -9,6 +9,16 @@ To provide users with a seamless interface for diagnosing property issues (using
 1.  **Issue Detection & Troubleshooting:** Analyzing uploaded property images (along with text) to identify problems (e.g., mold, cracks, leaks) and suggest potential solutions or next steps.
 2.  **Tenancy FAQ:** Answering text-based questions about tenancy laws, agreements, and processes, potentially offering location-specific advice if location context is provided to the AI.
 
+## Backend Routing Logic (`/lib/router.ts`)
+
+The backend employs a simple routing mechanism to direct user requests based on the input provided:
+
+1.  **Image Present:** If the user uploads an image (with or without accompanying text), the request is routed to the **Issue Detection & Troubleshooting Agent** (`analyseIssue`). This agent uses the multimodal capabilities of the AI to analyze the image.
+2.  **Text Only:** If the user provides only text (no image), the request is routed to the **Tenancy FAQ Agent** (`answerFAQ`). This agent uses the text input and conversation history to answer tenancy-related questions or indicate if the query is outside its scope.
+3.  **Fallback:** If neither text nor an image is provided in the request (which should be rare due to frontend/API validation), a default fallback message asking for more details is returned.
+
+This approach uses the distinct capabilities of the AI model based on the input modality.
+
 ## Frontend Features
 
 *   **Multimodal Input:** Accepts both text queries and image uploads.
