@@ -13,6 +13,7 @@
 
 import { analyseIssue } from './agents/issueDetection';
 import { answerFAQ }   from './agents/tenancyFAQ';
+import { GenerateContentResponse } from '@google/generative-ai'; // Import type
 
 // ------------- Utility: very light-weight text classification
 function decideByRegex(text: string): 'tenancy' | 'unknown' {
@@ -22,11 +23,24 @@ function decideByRegex(text: string): 'tenancy' | 'unknown' {
   return tenancyPattern.test(text) ? 'tenancy' : 'unknown';
 }
 
+// Helper to create a stream for the fallback message
+async function* fallbackStream(): AsyncGenerator<GenerateContentResponse> {
+  const fallbackText = `Could you provide more details?\n• For property issues, \nplease upload a photo.\n• For tenancy questions, mention rent, lease, \nor landlord context so I can help.`;
+  // Yield a single response chunk containing the fallback text
+  yield { 
+    response: Promise.resolve({ 
+      text: () => fallbackText, 
+      // Mock other properties if needed, though text() is the main one used later
+      promptFeedback: undefined, 
+      candidates: undefined 
+    }) 
+  } as GenerateContentResponse;
+  // No more chunks
+}
+
 /**
  * Main router.
- * @param text        User-supplied text (may be undefined)
- * @param base64Image Image as Base-64 string (may be undefined)
- * @returns           A ready-to-display reply string
+ * Returns an async generator yielding response chunks.
  */
 export async function route({
   text,
@@ -34,13 +48,13 @@ export async function route({
 }: {
   text?: string;
   base64Image?: string;
-}): Promise<string> {
-  // 1. Image present → Issue-Detection agent (multimodal)
+}): Promise<AsyncGenerator<GenerateContentResponse>> { // Return type is now stream generator
+  // 1. Image present → Issue-Detection agent stream
   if (base64Image) {
     return analyseIssue(base64Image, text);
   }
 
-  // 2. No image, have text → try FAQ agent
+  // 2. No image, have text → try FAQ agent stream
   if (text) {
     const classification = decideByRegex(text);
 
@@ -49,8 +63,6 @@ export async function route({
     }
   }
 
-  // 3. Fallback: we're not sure — ask a clarifying question
-  return `Could you provide more details?\n• For property issues, \
-please upload a photo.\n• For tenancy questions, mention rent, lease, \
-or landlord context so I can help.`;
+  // 3. Fallback: Return the fallback stream
+  return fallbackStream();
 }

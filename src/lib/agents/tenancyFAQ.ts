@@ -1,6 +1,6 @@
 // lib/agents/tenancyFAQ.ts
 import { textModel } from '../gemini';
-import { Content } from '@google/generative-ai';
+import { Content, GenerateContentResponse } from '@google/generative-ai';
 
 // System instruction for tenancy-law expertise
 const systemInstruction: Content = {
@@ -15,16 +15,15 @@ Answer briefly, link to authoritative sources when possible.`,
   ],
 };
 
-export async function answerFAQ(question: string) {
+export async function answerFAQ(question: string): Promise<AsyncGenerator<GenerateContentResponse>> {
   // Create user message
   const userMessage: Content = {
     role: 'user',
     parts: [{ text: question }]
   };
   
-  // Generate content with system instruction and user message in contents array
-  const res = await textModel.generateContent({
-    // Pass system instruction and user message together in the contents array
+  // Use generateContentStream
+  const result = await textModel.generateContentStream({
     contents: [systemInstruction, userMessage], 
     generationConfig: {
       temperature: 0.7,
@@ -32,5 +31,6 @@ export async function answerFAQ(question: string) {
     }
   });
   
-  return res.response.text();
+  // Return the stream directly
+  return result.stream;
 }

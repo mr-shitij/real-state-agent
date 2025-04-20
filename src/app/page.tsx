@@ -117,49 +117,78 @@ export default function Home() {
       imageUrl: currentImagePreview ?? undefined,
     };
 
-    setMessages((m) => [...m, userMsg]);
+    // Add user message and create placeholder for bot response
+    const botMessageId = crypto.randomUUID();
+    setMessages((m) => [
+      ...m,
+      userMsg,
+      { role: 'bot', text: '', id: botMessageId } // Add empty bot message
+    ]);
+
     setInput('');
     setFile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+
     setIsLoading(true);
 
+    // --- API Call & Stream Handling --- 
     const body = new FormData();
     if (fileToSend) body.append('image', fileToSend);
     if (textToSend) body.append('text', textToSend);
 
     try {
       const res = await fetch('/api/chat', { method: 'POST', body });
+
       if (!res.ok) {
+        // Handle non-streaming errors (e.g., 400, 500 from API route before streaming starts)
         let errorPayload = { message: `HTTP error! status: ${res.status}` };
         try {
-          const errorJson = await res.json();
-          errorPayload = errorJson.error || errorPayload;
-        } catch (parseError) {
+          const errorJson = await res.json(); 
+          errorPayload = errorJson.error || errorPayload; 
+        } catch (parseError) { 
           console.error("Failed to parse error response body:", parseError);
         }
-        throw new Error(errorPayload.message);
+        throw new Error(errorPayload.message); 
       }
-
-      const { reply } = await res.json();
-      setMessages((m) => [
-        ...m,
-        { role: 'bot', text: reply, id: crypto.randomUUID() },
-      ]);
+      
+      // --- Process Stream --- 
+      if (!res.body) { 
+        throw new Error("Response body is null"); 
+      }
+      
+      const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+      let accumulatedResponse = '';
+      
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break; // Exit loop when stream is finished
+        
+        accumulatedResponse += value;
+        // Update the specific bot message with the accumulated text
+        setMessages(prevMessages => 
+          prevMessages.map(msg => 
+            msg.id === botMessageId ? { ...msg, text: accumulatedResponse } : msg
+          )
+        );
+        // Optional: Small delay to allow UI to update smoothly
+        // await new Promise(resolve => setTimeout(resolve, 10)); 
+      }
+      // Stream finished successfully
+      
     } catch (e: unknown) {
-      console.error('API call failed:', e);
+      console.error('API call or stream processing failed:', e);
       const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
-      setMessages((m) => [
-        ...m,
-        {
-          role: 'bot',
-          text: `⚠️ Error: ${errorMessage}`,
-          id: crypto.randomUUID(),
-        },
-      ]);
+      // Update the placeholder bot message with the error
+      setMessages(prevMessages => 
+        prevMessages.map(msg => 
+          msg.id === botMessageId ? { ...msg, text: `⚠️ Error: ${errorMessage}` } : msg
+        )
+      );
     } finally {
       setIsLoading(false);
+      // Clear temporary preview state only if it wasn't changed by user
       if (imagePreview === currentImagePreview) {
         setImagePreview(null);
       }

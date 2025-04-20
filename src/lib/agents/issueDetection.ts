@@ -1,10 +1,11 @@
 // lib/agents/issueDetection.ts
 import { imageModel } from '../gemini';
+import { GenerateContentResponse } from '@google/generative-ai'; // Import response type
 
 export async function analyseIssue(
   base64Image: string,
   userText: string | undefined
-) {
+): Promise<AsyncGenerator<GenerateContentResponse>> { // Return stream generator
   const prompt = `
     You are a property-maintenance expert.  
     1. List the most likely visible issues in the image.  
@@ -25,9 +26,12 @@ export async function analyseIssue(
     }
   ];
 
-  const res = await imageModel.generateContent({
+  // Use generateContentStream
+  const result = await imageModel.generateContentStream({
     contents: [{ role: 'user', parts }]
+    // Add generationConfig if needed (e.g., temperature)
   });
   
-  return res.response.text();
+  // Return the stream directly
+  return result.stream;
 }
