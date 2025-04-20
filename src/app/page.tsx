@@ -5,8 +5,8 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Upload, Send, Image as ImageIcon, X, MessageSquareText, Loader } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
+import { Upload, Send, X, MessageSquareText, Loader } from 'lucide-react';
+import ReactMarkdown, { Options } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { PrismAsyncLight as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -63,7 +63,8 @@ export default function Home() {
   useEffect(() => {
     if (messages.length > 1 || (messages.length === 1 && messages[0].id !== 'initial-bot-message')) {
       try {
-        const messagesToSave = messages.map(({ imageUrl, ...rest }) => rest);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const messagesToSave = messages.map(({ imageUrl: _imageUrl, ...rest }) => rest);
         localStorage.setItem('chatMessages', JSON.stringify(messagesToSave));
       } catch (error) {
         console.error("Failed to save messages to localStorage:", error);
@@ -136,6 +137,7 @@ export default function Home() {
           const errorJson = await res.json();
           errorPayload = errorJson.error || errorPayload;
         } catch (parseError) {
+          console.error("Failed to parse error response body:", parseError);
         }
         throw new Error(errorPayload.message);
       }
@@ -180,8 +182,10 @@ export default function Home() {
     },
   };
 
-  const markdownComponents = {
-    code({ node, inline, className, children, ...props }: any) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const markdownComponents: Options['components'] = {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
+    code({ node: _node, inline, className, children, ...props }: any) {
       const match = /language-(\w+)/.exec(className || '');
       return !inline && match ? (
         <SyntaxHighlighter
@@ -198,11 +202,16 @@ export default function Home() {
         </code>
       );
     },
-    p: ({ node, ...props }: any) => <p className="mb-2 last:mb-0" {...props} />,
-    ul: ({ node, ...props }: any) => <ul className="list-disc list-inside mb-2 pl-4" {...props} />,
-    ol: ({ node, ...props }: any) => <ol className="list-decimal list-inside mb-2 pl-4" {...props} />,
-    blockquote: ({ node, ...props }: any) => <blockquote className="border-l-4 border-slate-300 pl-3 italic text-slate-600 mb-2" {...props} />,
-    a: ({ node, ...props }: any) => <a className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer" {...props} />,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
+    p: ({ node: _node, ...props }: any) => <p className="mb-2 last:mb-0" {...props} />,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
+    ul: ({ node: _node, ...props }: any) => <ul className="list-disc list-inside mb-2 pl-4" {...props} />,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
+    ol: ({ node: _node, ...props }: any) => <ol className="list-decimal list-inside mb-2 pl-4" {...props} />,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
+    blockquote: ({ node: _node, ...props }: any) => <blockquote className="border-l-4 border-slate-300 pl-3 italic text-slate-600 mb-2" {...props} />,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
+    a: ({ node: _node, ...props }: any) => <a className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer" {...props} />,
   };
 
   return (
@@ -235,6 +244,7 @@ export default function Home() {
                   }`}
                 >
                   {msg.imageUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={msg.imageUrl}
                       alt="User upload"
@@ -283,6 +293,7 @@ export default function Home() {
         >
           {imagePreview && (
             <div className="relative group shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={imagePreview} alt="Preview" className="size-8 sm:size-9 rounded border border-slate-300 object-cover" />
               <Button
                 variant="ghost"

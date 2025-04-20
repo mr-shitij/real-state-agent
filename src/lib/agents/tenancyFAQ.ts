@@ -1,8 +1,9 @@
 // lib/agents/tenancyFAQ.ts
 import { textModel } from '../gemini';
+import { Content } from '@google/generative-ai';
 
 // System instruction for tenancy-law expertise
-const systemInstruction = {
+const systemInstruction: Content = {
   role: 'system',
   parts: [
     {
@@ -16,14 +17,15 @@ Answer briefly, link to authoritative sources when possible.`,
 
 export async function answerFAQ(question: string) {
   // Create user message
-  const userMessage = {
+  const userMessage: Content = {
     role: 'user',
     parts: [{ text: question }]
   };
   
-  // Generate content with proper format
+  // Generate content with system instruction and user message in contents array
   const res = await textModel.generateContent({
-    contents: [userMessage],
+    // Pass system instruction and user message together in the contents array
+    contents: [systemInstruction, userMessage], 
     generationConfig: {
       temperature: 0.7,
       maxOutputTokens: 800,

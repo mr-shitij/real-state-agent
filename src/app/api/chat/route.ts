@@ -48,18 +48,14 @@ export async function POST(req: NextRequest) {
 
   } catch (error: unknown) {
     console.error('API Route Error:', error);
-    let errorMessage = 'An unexpected error occurred processing your request.';
-    let statusCode = 500;
-
-    if (error instanceof Error) {
-      errorMessage = error.message;
-    }
+    const message = error instanceof Error ? error.message : 'Internal Server Error';
+    const statusCode = 500;
 
     // Return a structured error response
     return NextResponse.json(
       { 
         error: { 
-          message: errorMessage, 
+          message: message, 
           details: error instanceof Error ? error.toString() : String(error) 
         } 
       }, 
