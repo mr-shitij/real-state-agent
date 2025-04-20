@@ -1,103 +1,359 @@
-import Image from "next/image";
+// app/page.tsx
+'use client';
+
+import { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Upload, Send, Image as ImageIcon, X, MessageSquareText, Loader } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { PrismAsyncLight as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+
+interface ChatMessage {
+  role: 'user' | 'bot';
+  text: string;
+  id: string;
+  imageUrl?: string;
+}
+
+const initialMessage: ChatMessage = {
+  role: 'bot',
+  text: `Hello! How can I help you with your property today? Upload a photo of an issue or ask a tenancy question.\n\nFor example, you can ask:\n* How do I report a leaking faucet?\n* What are the rules about pets?\n\`\`\`javascript\nconsole.log("Or show some code!");\n\`\`\``,
+  id: 'initial-bot-message',
+};
+
+const LoadingIndicator = () => (
+  <motion.div
+    className="flex items-center justify-center p-2"
+    initial={{ opacity: 0, scale: 0.8 }}
+    animate={{ opacity: 1, scale: 1 }}
+    exit={{ opacity: 0, scale: 0.8 }}
+    transition={{ duration: 0.3 }}
+  >
+    <Loader className="h-5 w-5 text-slate-500 animate-spin" />
+  </motion.div>
+);
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [file, setFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    const storedMessages = localStorage.getItem('chatMessages');
+    if (storedMessages) {
+      try {
+        setMessages(JSON.parse(storedMessages));
+      } catch (error) {
+        console.error("Failed to parse messages from localStorage:", error);
+        setMessages([initialMessage]);
+        localStorage.removeItem('chatMessages');
+      }
+    } else {
+      setMessages([initialMessage]);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (messages.length > 1 || (messages.length === 1 && messages[0].id !== 'initial-bot-message')) {
+      try {
+        const messagesToSave = messages.map(({ imageUrl, ...rest }) => rest);
+        localStorage.setItem('chatMessages', JSON.stringify(messagesToSave));
+      } catch (error) {
+        console.error("Failed to save messages to localStorage:", error);
+      }
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    setTimeout(() => {
+      scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  }, [messages, isLoading]);
+
+  const handleFile = (f: File | null) => {
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+    }
+    setFile(f);
+    if (f) {
+      const url = URL.createObjectURL(f);
+      setImagePreview(url);
+    } else {
+      setImagePreview(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  useEffect(() => {
+    const currentUrl = imagePreview;
+    return () => {
+      if (currentUrl) {
+        URL.revokeObjectURL(currentUrl);
+      }
+    };
+  }, [imagePreview]);
+
+  async function send() {
+    if ((!input.trim() && !file) || isLoading) return;
+
+    const textToSend = input;
+    const fileToSend = file;
+    const currentImagePreview = imagePreview;
+
+    const userMsg: ChatMessage = {
+      role: 'user',
+      text: textToSend || '',
+      id: crypto.randomUUID(),
+      imageUrl: currentImagePreview ?? undefined,
+    };
+
+    setMessages((m) => [...m, userMsg]);
+    setInput('');
+    setFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    setIsLoading(true);
+
+    const body = new FormData();
+    if (fileToSend) body.append('image', fileToSend);
+    if (textToSend) body.append('text', textToSend);
+
+    try {
+      const res = await fetch('/api/chat', { method: 'POST', body });
+      if (!res.ok) {
+        let errorPayload = { message: `HTTP error! status: ${res.status}` };
+        try {
+          const errorJson = await res.json();
+          errorPayload = errorJson.error || errorPayload;
+        } catch (parseError) {
+        }
+        throw new Error(errorPayload.message);
+      }
+
+      const { reply } = await res.json();
+      setMessages((m) => [
+        ...m,
+        { role: 'bot', text: reply, id: crypto.randomUUID() },
+      ]);
+    } catch (e: unknown) {
+      console.error('API call failed:', e);
+      const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
+      setMessages((m) => [
+        ...m,
+        {
+          role: 'bot',
+          text: `⚠️ Error: ${errorMessage}`,
+          id: crypto.randomUUID(),
+        },
+      ]);
+    } finally {
+      setIsLoading(false);
+      if (imagePreview === currentImagePreview) {
+        setImagePreview(null);
+      }
+    }
+  }
+
+  const dropHandlers = {
+    onDragOver: (e: React.DragEvent) => {
+      e.preventDefault();
+      e.currentTarget.classList.add('border-teal-400', 'bg-teal-50');
+    },
+    onDragLeave: (e: React.DragEvent) => {
+        e.currentTarget.classList.remove('border-teal-400', 'bg-teal-50');
+    },
+    onDrop: (e: React.DragEvent) => {
+      e.preventDefault();
+      e.currentTarget.classList.remove('border-teal-400', 'bg-teal-50');
+      const f = e.dataTransfer.files?.[0];
+      if (f?.type.startsWith('image/')) handleFile(f);
+    },
+  };
+
+  const markdownComponents = {
+    code({ node, inline, className, children, ...props }: any) {
+      const match = /language-(\w+)/.exec(className || '');
+      return !inline && match ? (
+        <SyntaxHighlighter
+          style={vscDarkPlus}
+          language={match[1]}
+          PreTag="div"
+          {...props}
+        >
+          {String(children).replace(/\n$/, '')}
+        </SyntaxHighlighter>
+      ) : (
+        <code className={`bg-slate-200 text-slate-700 px-1 py-0.5 rounded text-sm ${className || ''}`} {...props}>
+          {children}
+        </code>
+      );
+    },
+    p: ({ node, ...props }: any) => <p className="mb-2 last:mb-0" {...props} />,
+    ul: ({ node, ...props }: any) => <ul className="list-disc list-inside mb-2 pl-4" {...props} />,
+    ol: ({ node, ...props }: any) => <ol className="list-decimal list-inside mb-2 pl-4" {...props} />,
+    blockquote: ({ node, ...props }: any) => <blockquote className="border-l-4 border-slate-300 pl-3 italic text-slate-600 mb-2" {...props} />,
+    a: ({ node, ...props }: any) => <a className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer" {...props} />,
+  };
+
+  return (
+    <>
+      <div className="flex items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-6 text-slate-700">
+        <MessageSquareText size={28} strokeWidth={1.5} className="sm:size-8" />
+        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
+          Chat with Assistant
+        </h1>
+      </div>
+
+      <Card className="w-full max-w-4xl mx-auto shadow-lg rounded-xl overflow-hidden bg-white border border-slate-200 flex flex-col h-[80vh] sm:h-[85vh]">
+        <div className="flex-grow overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 scroll-smooth">
+          <AnimatePresence initial={false}>
+            {messages.map((msg) => (
+              <motion.div
+                key={msg.id}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10, transition: { duration: 0.15 } }}
+                transition={{ type: 'spring', stiffness: 300, damping: 25, duration: 0.3 }}
+                layout
+                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`px-3 py-2 sm:px-3.5 sm:py-2 rounded-lg shadow-md max-w-[80%] sm:max-w-[85%] text-sm transition-transform duration-150 hover:scale-[1.01] break-words ${
+                    msg.role === 'user'
+                      ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white'
+                      : 'bg-slate-100 text-slate-800 border border-slate-200'
+                  }`}
+                >
+                  {msg.imageUrl && (
+                    <img
+                      src={msg.imageUrl}
+                      alt="User upload"
+                      className="max-w-full h-auto rounded-md mb-2 border border-slate-300 shadow-sm"
+                      onLoad={() => {
+                        scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                    />
+                  )}
+                  {msg.role === 'bot' ? (
+                    <div className="prose prose-sm max-w-none prose-p:last-of-type:mb-0 prose-headings:my-2 prose-pre:bg-transparent prose-pre:p-0">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={markdownComponents}
+                      >
+                        {msg.text}
+                      </ReactMarkdown>
+                    </div>
+                  ) : (
+                    msg.text && <p>{msg.text}</p>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+            {isLoading && (
+              <motion.div
+                key="loading"
+                layout
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                className="flex justify-start"
+              >
+                <div className="px-3 py-2 rounded-lg bg-slate-100 text-slate-500 shadow-md border border-slate-200 flex items-center">
+                  <LoadingIndicator />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <div ref={scrollRef}></div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+
+        <div
+          {...dropHandlers}
+          className="p-2 sm:p-3 bg-slate-50 border-t border-slate-200 transition-colors duration-200 ease-in-out mt-auto shrink-0"
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+          {imagePreview && (
+            <div className="relative group shrink-0">
+              <img src={imagePreview} alt="Preview" className="size-8 sm:size-9 rounded border border-slate-300 object-cover" />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute -top-1 -right-1 bg-black/60 hover:bg-black/80 text-white rounded-full w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center justify-center p-0.5"
+                onClick={() => handleFile(null)}
+                aria-label="Clear image selection"
+              >
+                <X size={10} strokeWidth={3}/>
+              </Button>
+            </div>
+          )}
+
+          <div className="flex gap-2 items-end bg-white rounded-lg shadow-md px-2 py-1.5 sm:px-3 sm:py-2 border border-slate-300 focus-within:ring-2 focus-within:ring-blue-400 focus-within:border-blue-400 transition-all duration-200 ease-in-out">
+            <label
+              htmlFor="file-upload"
+              className={`cursor-pointer rounded-md p-1.5 sm:p-2 text-slate-500 hover:bg-slate-100 hover:text-blue-500 transition self-center ${imagePreview ? 'hidden' : ''}`}
+              title="Upload Image"
+            >
+              <Upload className="w-5 h-5" />
+              <input
+                id="file-upload"
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleFile(e.target.files?.[0] || null)}
+                className="sr-only"
+              />
+            </label>
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Ask a question or describe the image..."
+              className="flex-1 bg-transparent outline-none resize-none border-0 p-0 text-sm placeholder:text-slate-400 pr-1 mx-1 max-h-24 sm:max-h-28 scroll-smooth"
+              rows={1}
+              style={{ height: 'auto' }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  send();
+                }
+              }}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                target.style.height = 'auto';
+                target.style.height = `${target.scrollHeight}px`;
+              }}
+            />
+            <Button
+              size="icon"
+              onClick={send}
+              disabled={isLoading || (!input.trim() && !file)}
+              className="self-end bg-blue-500 hover:bg-blue-600 text-white rounded-md sm:rounded-lg size-8 sm:size-9 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 ease-in-out flex items-center justify-center active:scale-95 hover:shadow-md shrink-0"
+              aria-label="Send message"
+              title="Send message"
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                {isLoading ? (
+                   <motion.div key="loader" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.5, opacity: 0 }}>
+                     <Loader className="w-4 h-4 animate-spin" />
+                   </motion.div>
+                ) : (
+                   <motion.div key="send" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.5, opacity: 0 }}>
+                     <Send size={16} strokeWidth={2} />
+                   </motion.div>
+                )}
+              </AnimatePresence>
+            </Button>
+          </div>
+        </div>
+      </Card>
+    </>
   );
 }

@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Multi-Agent Real Estate Assistant Chatbot (Text + Image Enabled)
+
+This project implements a sophisticated chatbot assistant designed to help users with real estate-related issues. It leverages a multimodal AI backend (like Google Gemini), accessed via the `/api/chat` endpoint, to understand both text and image inputs and effectively route queries to specialized virtual agent capabilities.
+
+## Objective
+
+To provide users with a seamless interface for diagnosing property issues (using images and text) and getting answers to common tenancy-related questions. The backend AI model is responsible for:
+
+1.  **Issue Detection & Troubleshooting:** Analyzing uploaded property images (along with text) to identify problems (e.g., mold, cracks, leaks) and suggest potential solutions or next steps.
+2.  **Tenancy FAQ:** Answering text-based questions about tenancy laws, agreements, and processes, potentially offering location-specific advice if location context is provided to the AI.
+
+## Frontend Features
+
+*   **Multimodal Input:** Accepts both text queries and image uploads.
+*   **Interactive Chat UI:** Clean, responsive chat interface built with React and styled with Tailwind CSS.
+*   **Image Display:** Uploaded images are displayed directly within the chat message context.
+*   **Markdown Rendering:** AI responses are rendered with Markdown support, including:
+    *   Lists (ordered and unordered)
+    *   Bold/Italic text
+    *   Blockquotes
+    *   Links
+    *   Code Blocks (with syntax highlighting using `react-syntax-highlighter`)
+*   **Loading & Animation:** Uses `framer-motion` for smooth animations and loading indicators.
+*   **Responsiveness:** Adapts layout and elements for various screen sizes.
+*   **Local History:** Chat history is persisted in the browser's `localStorage` for the current session (Note: Uploaded image previews are session-specific and won't be restored from history).
+
+## Technology Stack
+
+*   **Framework:** [Next.js](https://nextjs.org/) (v15+)
+*   **Language:** [TypeScript](https://www.typescriptlang.org/)
+*   **UI Library:** [React](https://react.dev/) (v19+)
+*   **Styling:** [Tailwind CSS](https://tailwindcss.com/) (v3)
+*   **Animation:** [Framer Motion](https://www.framer.com/motion/)
+*   **Icons:** [Lucide React](https://lucide.dev/)
+*   **Markdown:**
+    *   [React Markdown](https://github.com/remarkjs/react-markdown)
+    *   [Remark GFM](https://github.com/remarkjs/remark-gfm)
+*   **Syntax Highlighting:** [React Syntax Highlighter](https://github.com/react-syntax-highlighter/react-syntax-highlighter)
+*   **Backend API Client (Assumed):** Likely uses a library like `@google/generative-ai` within the `/api/chat` route to communicate with the multimodal AI.
 
 ## Getting Started
 
-First, run the development server:
+1.  **Clone the repository:**
+    ```bash
+    git clone <repository-url>
+    cd <repository-directory>
+    ```
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+3.  **Set up environment variables:**
+    *   Create a `.env` file in the project root.
+    *   Add the necessary environment variables, particularly the API key for the backend AI service:
+        ```dotenv
+        GOOGLE_API_KEY="YOUR_API_KEY"
+        # Add any other required variables for the /api/chat endpoint
+        ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+4.  **Run the development server:**
+    ```bash
+    npm run dev
+    ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+5.  **Open the application:**
+    Open [http://localhost:3000](http://localhost:3000) (or the specified port) in your browser.
 
-## Learn More
+## API Endpoint
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+*   `/api/chat`: This Next.js API route handles communication with the backend multimodal AI model. It accepts POST requests containing text and/or image data (likely as `FormData`) and returns the AI's response.
