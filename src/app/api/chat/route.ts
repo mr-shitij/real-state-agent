@@ -1,7 +1,7 @@
 // app/api/chat/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { route } from '@/lib/router';
-import { GenerateContentResponse } from '@google/generative-ai';
+import { GenerateContentResponse, Content } from '@google/generative-ai';
 // ReadableStream and TextEncoder are available globally in Node.js runtime on Vercel
   
 export const runtime = 'nodejs'; // Keep Node.js runtime due to Buffer usage
@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
   const contentType = req.headers.get('content-type') || '';
   let text: string | undefined;
   let base64Image: string | undefined;
+  let history: Content[] = []; // Initialize history array
 
   try {
     if (contentType.startsWith('multipart/form-data')) {
@@ -65,11 +66,29 @@ export async function POST(req: NextRequest) {
         const bytes = await imageFile.arrayBuffer();
         base64Image = Buffer.from(bytes).toString('base64');
       }
+      
+      // Parse history from FormData
+      const historyString = formData.get('history') as string | undefined;
+      if (historyString) {
+        try {
+          // Convert simple role/text history from frontend to Content[] format
+          const parsedHistory: {role: string, text: string}[] = JSON.parse(historyString);
+          history = parsedHistory.map(msg => ({
+            role: msg.role === 'bot' ? 'model' : 'user', // Map role names
+            parts: [{ text: msg.text }]
+          }));
+        } catch (e) {
+          console.error("Failed to parse history JSON:", e);
+          // Decide how to handle parsing error: proceed without history or return error?
+          // Let's proceed without history for now.
+        }
+      }
     } else if (contentType.startsWith('application/json')) {
       // Handle JSON payload
-      const body = (await req.json()) as { text?: string; image?: string };
+      const body = (await req.json()) as { text?: string; image?: string; history?: Content[] };
       text = body.text;
       base64Image = body.image;
+      history = body.history || []; // Use history from JSON if present
     } else {
       // Handle unsupported content type
       console.warn(`Unsupported content type: ${contentType}`);
@@ -83,7 +102,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Call the router to get the response stream generator
-    const geminiStreamGenerator = await route({ text, base64Image });
+    const geminiStreamGenerator = await route({ text, base64Image, history });
 
     // Convert the Gemini stream generator to a ReadableStream
     const readableStream = await geminiStreamToReadableStream(geminiStreamGenerator);

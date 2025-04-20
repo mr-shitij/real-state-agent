@@ -117,12 +117,16 @@ export default function Home() {
       imageUrl: currentImagePreview ?? undefined,
     };
 
-    // Add user message and create placeholder for bot response
     const botMessageId = crypto.randomUUID();
+    
+    // Get current messages BEFORE adding the new ones
+    const currentMessages = messages;
+
+    // Add user message and bot placeholder
     setMessages((m) => [
       ...m,
       userMsg,
-      { role: 'bot', text: '', id: botMessageId } // Add empty bot message
+      { role: 'bot', text: '', id: botMessageId }
     ]);
 
     setInput('');
@@ -133,10 +137,22 @@ export default function Home() {
 
     setIsLoading(true);
 
+    // --- Prepare History for API --- 
+    // Map history to the format expected by the backend (simple role/text pairs)
+    // Filter out the initial message if it's the default one and no other messages exist?
+    // Or just send all previous messages.
+    const historyForApi = currentMessages.map(msg => ({
+      role: msg.role,
+      // Send only text part of history for now
+      text: msg.text 
+    })); 
+
     // --- API Call & Stream Handling --- 
     const body = new FormData();
     if (fileToSend) body.append('image', fileToSend);
     if (textToSend) body.append('text', textToSend);
+    // Add history as a JSON string
+    body.append('history', JSON.stringify(historyForApi)); 
 
     try {
       const res = await fetch('/api/chat', { method: 'POST', body });

@@ -57,13 +57,15 @@ async function* fallbackStream(): AsyncGenerator<GenerateContentResponse> {
 export async function route({
   text,
   base64Image,
+  history
 }: {
   text?: string;
   base64Image?: string;
+  history: Content[];
 }): Promise<AsyncGenerator<GenerateContentResponse>> { // Return type is now stream generator
   // 1. Image present → Issue-Detection agent stream
   if (base64Image) {
-    return analyseIssue(base64Image, text);
+    return analyseIssue(base64Image, text, history);
   }
 
   // 2. No image, have text → try FAQ agent stream
@@ -71,7 +73,7 @@ export async function route({
     const classification = decideByRegex(text);
 
     if (classification === 'tenancy') {
-      return answerFAQ(text);
+      return answerFAQ(text, history);
     }
   }
 
