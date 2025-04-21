@@ -9,6 +9,10 @@ To provide users with a seamless interface for diagnosing property issues (using
 1.  **Issue Detection & Troubleshooting:** Analyzing uploaded property images (along with text) to identify problems (e.g., mold, cracks, leaks) and suggest potential solutions or next steps.
 2.  **Tenancy FAQ:** Answering text-based questions about tenancy laws, agreements, and processes, potentially offering location-specific advice if location context is provided to the AI.
 
+## Example UI
+
+![Chatbot UI Example](image.png)
+
 ## Backend Routing Logic (`/lib/router.ts`)
 
 The backend employs a simple routing mechanism to direct user requests based on the input provided:
