@@ -20,7 +20,7 @@ interface ChatMessage {
 
 const initialMessage: ChatMessage = {
   role: 'bot',
-  text: `Hello! How can I help you with your property today? Upload a photo of an issue or ask a tenancy question.\n\nFor example, you can ask:\n* How do I report a leaking faucet?\n* What are the rules about pets?\n\`\`\`javascript\nconsole.log("Or show some code!");\n\`\`\``,
+  text: `Hello! How can I help you with your property today? Upload a photo of an issue or ask a tenancy question.\n\nFor example, you can ask:\n* How do I report a leaking faucet?\n* What are the rules about pets?\n`,
   id: 'initial-bot-message',
 };
 

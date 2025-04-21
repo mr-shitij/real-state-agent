@@ -77,6 +77,16 @@ This approach uses the distinct capabilities of the AI model based on the input 
 5.  **Open the application:**
     Open [http://localhost:3000](http://localhost:3000) (or the specified port) in your browser.
 
+**Important Note on API Rate Limits:**
+
+The Google Generative AI API (used by the backend `/api/chat` endpoint) has rate limits, especially on the free tier. For models like `gemini-1.5-pro`, the free limit might be as low as 2 requests per minute.
+
+If you send messages too frequently, you may encounter a `429 Too Many Requests` error. 
+
+*   **Wait:** Simply wait a minute before sending another request.
+*   **Check Limits:** Refer to the [official Gemini API rate limit documentation](https://ai.google.dev/gemini-api/docs/rate-limits).
+*   **Upgrade:** For higher usage, consider upgrading to a paid Google AI Platform plan.
+
 ## API Endpoint
 
 *   `/api/chat`: This Next.js API route handles communication with the backend multimodal AI model. It accepts POST requests containing text and/or image data (likely as `FormData`) and returns the AI's response.
