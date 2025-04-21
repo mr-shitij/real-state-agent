@@ -94,3 +94,10 @@ If you send messages too frequently, you may encounter a `429 Too Many Requests`
 ## API Endpoint
 
 *   `/api/chat`: This Next.js API route handles communication with the backend multimodal AI model. It accepts POST requests containing text and/or image data (likely as `FormData`) and returns the AI's response.
+
+## Deployment
+
+This application is deployed on [Vercel](https://vercel.com/). 
+
+[Deployment Link](https://real-state-agent.vercel.app)
+
